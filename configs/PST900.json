@@ -1,0 +1,30 @@
+{
+    "model_name": "model1_b1_Mamba4",
+    "inputs": "rgbt",
+    "dataset": "pst900",
+    "root": "/root/autodl-tmp/dataset/PST900/PST900_RGBT_Dataset/",
+    "n_classes": 5,
+    "id_unlabel": 11,
+    "brightness": 0.5,
+    "contrast": 0.5,
+    "saturation": 0.5,
+    "p": 0.5,
+    "scales_range": "0.5 2.0",
+    "crop_size": "640 1280",
+    "eval_scales": "0.5 0.75 1.0 1.25 1.5 1.75",
+    "eval_flip": "true",
+
+
+    "ims_per_gpu": 2,
+    "num_workers": 4,
+
+    "lr_start": 1e-4,
+    "momentum": 0.9,
+    "weight_decay": 5e-4,
+    "lr_power": 0.9,
+    "epochs": 200,
+
+    "loss": "crossentropy",
+    "class_weight": "enet"
+}
+
