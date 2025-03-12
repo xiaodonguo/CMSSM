@@ -14,7 +14,8 @@ mamba-ssm==1.0.1
 selective-scan==0.0.1
 mmcv==2.2.0
 ## Dataset and Results
+#![picture3](./figure/fig6.jpg)
 | Models | Dataset  | mIoU | Weights|
 |------|------------|------|--------------|
-| CM-SSM    | CART       | 75.4   | [pth]()     |
-| CM-SSM   | PST900       | 84.8    | [pth]()     |
+| CM-SSM    | CART       | 75.4   | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.0/CART.pth)     |
+| CM-SSM   | PST900       | 84.8    | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.0/PST900.pth)     |
