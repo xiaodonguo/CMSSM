@@ -14,8 +14,8 @@ mamba-ssm==1.0.1
 selective-scan==0.0.1  
 mmcv==2.2.0  
 ## Dataset and Results
-![picture3](./fig/fig4.jpg)
-![picture3](./fig/fig5.jpg)
+![picture3](./fig/fig4.png)
+![picture3](./fig/fig5.png)
 | Models | Dataset  | mIoU | Weights|
 |------|------------|------|--------------|
 | CM-SSM    | [CART](https://github.com/aerorobotics/caltech-aerial-rgbt-dataset)      | 75.4   | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.0/CART.pth)     |
