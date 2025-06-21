@@ -14,7 +14,7 @@ class Model(nn.Module):
         super(Model, self).__init__()
         if mode == 'b0':
             channels = [16, 32, 64, 128]
-            emb_c = 256
+            emb_c = 128
         elif mode == 'b1':
             channels = [32, 64, 128, 256]
             emb_c = 256
@@ -47,15 +47,15 @@ class Model(nn.Module):
 
 
 if __name__ == '__main__':
-    rgb = torch.rand(1, 3, 512, 640).to('cuda:0')
-    t = torch.rand(1, 3, 512, 640).to('cuda:0')
+    rgb = torch.rand(1, 3, 480, 640).to('cuda:0')
+    t = torch.rand(1, 3, 480, 640).to('cuda:0')
     model = Model(mode='b1', inputs='rgbt', fusion_mode='CM-SSM', n_class=12,).eval().to('cuda:0')
     out = model(rgb, t)
     print(out.shape)
 
     from ptflops import get_model_complexity_info
 
-    flops, params = get_model_complexity_info(model, (3, 512, 640), as_strings=True, print_per_layer_stat=False)
+    flops, params = get_model_complexity_info(model, (3, 480, 640), as_strings=True, print_per_layer_stat=False)
     print('Flops ' + flops)
     print('Params ' + params)
 
