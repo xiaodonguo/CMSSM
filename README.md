@@ -1,6 +1,7 @@
 # Cross-modal State Space Modeling for Real-time RGB-Thermal Wild Scene Semantic Segmentation
 ## Introduction
 This repository contains the code for the paper "Cross-modal State Space Modeling for Real-time RGB-Thermal Wild Scene Semantic Segmentation," which has been accepted by IROS 2025.
+**Updating** ✨: An extended version of our conference paper has been submitted to TCSVT. More details and codes can be found [here](your-link-here).
 ## Method 
 ![picture1](./fig/fig2.png)
 The CM-SSM consists of two image encoders to extract the features of RGB and thermal images, four CM-SSA moudules to perform RGB-T feature fusion in four stages, and an MLP decoder to predict the semantic segmentation maps.
