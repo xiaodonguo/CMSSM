@@ -21,9 +21,9 @@ mmcv==2.2.0
 
 | Models |Backbone| Dataset  | mIoU | Weights|
 |------|------|------------|------|--------------|
-| CM-SSM|EfficientVit-B1    | [CART](https://github.com/aerorobotics/caltech-aerial-rgbt-dataset)      | 75.1   | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.0/CART.pth)     |
-| CM-SSM|EfficeintVit-B1   | [PST900](https://github.com/ShreyasSkandanS/pst900_thermal_rgb)     | 85.9    | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.0/PST900.pth)     |
-| CM-SSM|ConvNeXtV2-A    | [SUS](https://github.com/aerorobotics/caltech-aerial-rgbt-dataset)      | 82.5   | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.0/CART.pth)     |
-| CM-SSM|ConvNeXtV2-A   | [FMB](https://github.com/ShreyasSkandanS/pst900_thermal_rgb)     | 60.7    | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.0/PST900.pth)     |
+| CM-SSM|EfficientVit-B1    | [CART](https://github.com/aerorobotics/caltech-aerial-rgbt-dataset)      | 75.1   | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.1/CART.pth)     |
+| CM-SSM|EfficeintVit-B1   | [PST900](https://github.com/ShreyasSkandanS/pst900_thermal_rgb)     | 85.9    | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.1/PST900.pth)     |
+| CM-SSM|ConvNeXtV2-A    | [SUS](https://github.com/xiaodonguo/SUS_dataset)      | 82.5   | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.1/SUS.pth)     |
+| CM-SSM|ConvNeXtV2-A   | [FMB](https://github.com/JinyuanLiu-CV/SegMiF)     | 60.7    | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.1/FMB.pth)     |
 # Concat
 If any questions, please contact 3120245534@bit.edu.cn.
