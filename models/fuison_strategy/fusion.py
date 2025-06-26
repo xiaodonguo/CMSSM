@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from jinja2.utils import concat
 from torch import Tensor
 
 import torch.nn.functional as F
@@ -8,10 +9,13 @@ from timm.layers import trunc_normal_
 import math
 
 from einops import rearrange, repeat
-# from models.RGB_T.CMX.models.net_utils import FeatureFusionModule as FFM
-# from model_others.RGB_T.CMX.models.net_utils import FeatureRectifyModule as FRM
-# from model_others.RGB_T.MDNet.model import MultiSpectralAttentionLayer, SS_Conv_SSM
-# from backbone.MedMamba import SS2D
+from model_others.RGB_T.CMX.models.net_utils import FeatureFusionModule as FFM
+from model_others.RGB_T.CMX.models.net_utils import FeatureRectifyModule as FRM
+from proposed.attention_module import FeatureFusionModule
+from model_others.RGB_T.MAINet import TSFA
+from model_others.RGB_T.MDNet.model import MultiSpectralAttentionLayer, SS_Conv_SSM
+from backbone.MedMamba import SS2D
+from model_others.RGB_T.sigma.encoders.vmamba import CrossMambaFusionBlock, ConcatMambaFusionBlock
 try:
     from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, selective_scan_ref
 except:
@@ -24,27 +28,119 @@ class Fusion_Module(nn.Module):
         self.norm_layer = nn.ModuleList()
         self.fusion = nn.ModuleList()
 
+        if self.fusion_mode == 'cat':
+            for i in channels:
+                self.fusion.append(BasicConv(2 * i, i, 3, 1, 1))
+
+        if self.fusion_mode == 'demo1':
+            for i in channels:
+                self.fusion.append(Demo1(i))
+
+        if self.fusion_mode == 'CMX':
+            self.FRMs = nn.ModuleList([
+                FRM(dim=channels[0], reduction=1),
+                FRM(dim=channels[1], reduction=1),
+                FRM(dim=channels[2], reduction=1),
+                FRM(dim=channels[3], reduction=1)])
+
+            self.FFMs = nn.ModuleList([
+                FFM(dim=channels[0], reduction=1, num_heads=num_heads[0], norm_layer=norm_fuse),
+                FFM(dim=channels[1], reduction=1, num_heads=num_heads[1], norm_layer=norm_fuse),
+                FFM(dim=channels[2], reduction=1, num_heads=num_heads[2], norm_layer=norm_fuse),
+                FFM(dim=channels[3], reduction=1, num_heads=num_heads[3], norm_layer=norm_fuse)])
+
+        if self.fusion_mode == 'CDA':
+            self.CDAs = nn.ModuleList([
+                FeatureFusionModule(channels[0]),
+                FeatureFusionModule(channels[1]),
+                FeatureFusionModule(channels[2]),
+                FeatureFusionModule(channels[3]),
+            ])
+            # self.CDA = FeatureFusionModule(channels[3])
+
+        if self.fusion_mode == 'sigma':
+            self.CroMB = nn.ModuleList()
+            self.ConMB = nn.ModuleList()
+            for i in channels:
+                self.CroMB.append(CrossMambaFusionBlock(hidden_dim=i,
+                                      mlp_ratio=0.0,
+                                      d_state=4, ))
+                self.ConMB.append(ConcatMambaFusionBlock(hidden_dim=i,
+                                                                mlp_ratio=0.0,
+                                                                d_state=4,))
+
+            self.FFMs = nn.ModuleList([
+                FFM(dim=channels[0], reduction=1, num_heads=num_heads[0], norm_layer=norm_fuse),
+                FFM(dim=channels[1], reduction=1, num_heads=num_heads[1], norm_layer=norm_fuse),
+                FFM(dim=channels[2], reduction=1, num_heads=num_heads[2], norm_layer=norm_fuse),
+                FFM(dim=channels[3], reduction=1, num_heads=num_heads[3], norm_layer=norm_fuse)])
+
+        # if self.fusion_mode == 'MDFusion':
+        #     self.fusion = MDFusion(channels)
+
+        if self.fusion_mode == 'TSFA':
+            for channel in channels:
+                self.fusion.append(TSFA(channel))
+
         if self.fusion_mode == 'CM-SSM':
             for channel in channels:
                 self.fusion.append(CM_SSM(channel))
+
+        if self.fusion_mode == 'M-SSM':
+            for channel in channels:
+                self.fusion.append(M_SSM(channel))
+
 
 
 
 
     def forward(self, rgb, t):
         outs = []
+        if self.fusion_mode == 'MDFusion':
+            outs = self.fusion(rgb, t)
+
         for i in range(4):
             if self.fusion_mode == 'add':
                 outs.append(rgb[i] + t[i])
 
             if self.fusion_mode == 'max':
                 out, _ = torch.max(torch.stack([rgb[i], t[i]], dim=1), dim=1)
-                outs.append(self.norm_layer[i](out))
+                outs.append(out)
 
-            # Mamba4 is best
-            if self.fusion_mode in ['CM-SSM']:
+            if self.fusion_mode == 'demo1':
                 outs.append(self.fusion[i](rgb[i], t[i]))
 
+            if self.fusion_mode == 'CMX':
+                rgb_, t_ = self.FRMs[i](rgb[i], t[i])
+                # rgb_, t_ = rgb[i], t[i]
+                out = self.FFMs[i](rgb_, t_)
+                outs.append(out)
+
+            if self.fusion_mode == 'TSFA':
+                outs.append(self.fusion[i](rgb[i], t[i]))
+
+            if self.fusion_mode == 'CDA':
+                if i >= 1:
+                    outs.append(self.CDAs[i](rgb[i], t[i]))
+                else:
+                    outs.append(rgb[i]+t[i])
+                # else:
+                #     outs.append(self.CDAs[i](rgb[i], t[i]))
+                # outs.append(self.CDAs[i](rgb[i], t[i]))
+
+            if self.fusion_mode == 'cat':
+                out= self.fusion[i](torch.cat((rgb[i], t[i]), dim=1))
+                outs.append(out)
+
+
+            # Mamba4 is best
+            if self.fusion_mode in ['CM-SSM', 'M-SSM']:
+                outs.append(self.fusion[i](rgb[i], t[i]))
+
+            if self.fusion_mode == 'sigma':
+                rgb_, t_ = self.CroMB[i](rgb[i].permute(0, 2, 3, 1), t[i].permute(0, 2, 3, 1))
+                out = self.ConMB[i](rgb_, t_).permute(0, 3, 1, 2)
+                outs.append(out)
 
         return outs
 
@@ -68,6 +164,49 @@ class CM_SSM(nn.Module):
 
         out = self.conv2(torch.cat((left, rgb_, t_), dim=1))
         return out
+
+class M_SSM(nn.Module):
+    def __init__(self, in_c):
+        super(M_SSM, self).__init__()
+        self.SS2D_rgb = SS2D(in_c)
+        self.SS2D_t = SS2D(in_c)
+        self.conv1 = nn.Sequential(nn.Conv2d(2*in_c, in_c, 3, 1, 1),
+                                   nn.BatchNorm2d(in_c),
+                                   nn.ReLU())
+        self.conv2 = nn.Sequential(nn.Conv2d(3*in_c, in_c, 1, 1, 0),
+                                   nn.BatchNorm2d(in_c),
+                                   nn.ReLU())
+    def forward(self, rgb, t):
+        B, C, H, W = rgb.shape
+        left = self.conv1(torch.cat((rgb, t), dim=1))
+
+        rgb_ = self.SS2D_rgb(rgb.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        t_ = self.SS2D_t(t.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        rgb_ = rgb_ + rgb
+        t_ = t_ + t
+
+        out = self.conv2(torch.cat((left, rgb, t), dim=1))
+        return out
+
+class Demo1(nn.Module):
+    def __init__(self, in_c):
+        super(Demo1, self).__init__()
+        self.conv1 = BasicConv(in_c * 2, in_c, 3, 1, 1)
+        self.conv2 = BasicConv(in_c* 2, in_c, 1, 1, 0)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.maxpool = nn.AdaptiveMaxPool2d(1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, rgb, t):
+        B, C, H, W = rgb.shape
+        path1 = self.conv1(torch.cat((rgb, t), dim=1))
+        avg = self.avgpool(torch.cat((rgb, t), dim=1))
+        max = self.maxpool(torch.cat((rgb, t), dim=1))
+        path2 = torch.mul(torch.cat((rgb, t), dim=1), self.sigmoid(avg+max))
+        path2 = self.conv2(path2)
+        fusion = path1 + path2
+        return fusion
+
 
 
 #################################################################################
@@ -279,6 +418,7 @@ class SS2D_rgbt(nn.Module):
         x_hwwh = torch.stack((rgb_hwwh, t_hwwh), dim=-1).view(B, 2, -1, 2*L)
         # 进行正向检索与反向检索
         xs = torch.cat([x_hwwh, torch.flip(x_hwwh, dims=[-1])], dim=1)  # (b, k, d, l)
+
         x_dbl = torch.einsum("b k d l, k c d -> b k c l", xs.view(B, K, -1, 2*L), self.x_proj_weight)
         # x_dbl = x_dbl + self.x_proj_bias.view(1, K, -1, 1)
         dts, Bs, Cs = torch.split(x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=2)
@@ -357,3 +497,61 @@ def channel_shuffle(x: Tensor, groups: int) -> Tensor:
 #################################################################################
 #                             Comparison Methods                                #
 #################################################################################
+
+class MDFusion(nn.Module):
+    def __init__(self, channels):
+        super(MDFusion, self).__init__()
+
+        self.mca1 = SS_Conv_SSM(channels[0] // 4)
+        self.mca2 = SS_Conv_SSM(channels[1] // 4)
+        self.mca3 = SS_Conv_SSM(channels[2] // 4)
+        self.mca4 = SS_Conv_SSM(channels[3] // 4)
+
+        # self.dct1 = MultiSpectralAttentionLayer(channels[0] // 4, shape[0] // 4, shape[1] // 4)
+        # self.dct2 = MultiSpectralAttentionLayer(channels[1] // 4, shape[0] // 8, shape[0] // 8)
+        # self.dct3 = MultiSpectralAttentionLayer(channels[2] // 4, shape[0] // 16, shape[0] // 16)
+        # self.dct4 = MultiSpectralAttentionLayer(channels[3] // 4, shape[0] // 32, shape[0] // 32)
+
+        self.mca1t = SS_Conv_SSM(channels[0] // 4)
+        self.mca2t = SS_Conv_SSM(channels[1] // 4)
+        self.mca3t = SS_Conv_SSM(channels[2] // 4)
+        self.mca4t = SS_Conv_SSM(channels[3] // 4)
+
+        self.lpr1 = nn.Conv2d(channels[0], channels[0]//4, 1, 1, 0)
+        self.lpr2 = nn.Conv2d(channels[1], channels[1]//4, 1, 1, 0)
+        self.lpr3 = nn.Conv2d(channels[2], channels[2]//4, 1, 1, 0)
+        self.lpr4 = nn.Conv2d(channels[3], channels[3]//4, 1, 1, 0)
+
+        self.lpt1 = nn.Conv2d(channels[0], channels[0]//4, 1, 1, 0)
+        self.lpt2 = nn.Conv2d(channels[1], channels[1]//4, 1, 1, 0)
+        self.lpt3 = nn.Conv2d(channels[2], channels[2]//4, 1, 1, 0)
+        self.lpt4 = nn.Conv2d(channels[3], channels[3]//4, 1, 1, 0)
+
+        self.lp1 = nn.Conv2d(channels[0] // 2, channels[0]//4, 1, 1, 0)
+        self.lp2 = nn.Conv2d(channels[1] // 2, channels[1]//4, 1, 1, 0)
+        self.lp3 = nn.Conv2d(channels[2] // 2, channels[2]//4, 1, 1, 0)
+        self.lp4 = nn.Conv2d(channels[3] // 2, channels[3]//4, 1, 1, 0)
+
+    def forward(self, x, thermal):
+
+        x1_1a, x1_1b = self.mca1(self.lpr1(x[0]).permute(0,2,3,1)).permute(0,3,1,2), self.mca1t(self.lpt1(thermal[0]).permute(0,2,3,1)).permute(0,3,1,2)
+        x2_1a, x2_1b = self.mca2(self.lpr2(x[1]).permute(0,2,3,1)).permute(0,3,1,2), self.mca2t(self.lpt2(thermal[1]).permute(0,2,3,1)).permute(0,3,1,2)
+        x3_1a, x3_1b = self.mca3(self.lpr3(x[2]).permute(0,2,3,1)).permute(0,3,1,2), self.mca3t(self.lpt3(thermal[2]).permute(0,2,3,1)).permute(0,3,1,2)
+        x4_1a, x4_1b = self.mca4(self.lpr4(x[3]).permute(0,2,3,1)).permute(0,3,1,2), self.mca4t(self.lpt4(thermal[3]).permute(0,2,3,1)).permute(0,3,1,2)
+
+        x1_1lp = torch.nn.Sigmoid()(self.lp1(torch.cat([x1_1a, x1_1b], dim=1)))
+        x1_1 = x1_1a*x1_1lp+x1_1b*(1-x1_1lp)
+
+
+        x2_1lp = torch.nn.Sigmoid()(self.lp2(torch.cat([x2_1a, x2_1b], dim=1)))
+        x2_1 = x2_1a * x2_1lp + x2_1b * (1 - x2_1lp)
+
+
+        x3_1lp = torch.nn.Sigmoid()(self.lp3(torch.cat([x3_1a, x3_1b], dim=1)))
+        x3_1 = x3_1a * x3_1lp + x3_1b * (1 - x3_1lp)
+
+
+        x4_1lp = torch.nn.Sigmoid()(self.lp4(torch.cat([x4_1a, x4_1b], dim=1)))
+        x4_1 = x4_1a * x4_1lp + x4_1b * (1 - x4_1lp)
+
+        return x1_1, x2_1, x3_1, x4_1
