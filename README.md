@@ -2,7 +2,7 @@
 ## Introduction
 This repository contains the code for the paper "Cross-modal State Space Modeling for Real-time RGB-Thermal Wild Scene Semantic Segmentation," which has been accepted by IROS 2025.
 
-✨**2025-6-26**✨ : An extended version of our conference paper, "Cross-modal State Space Modeling and Terrain-specific Knowledge Distillation for RGB-Thermal Semantic Segmentation", has been submitted to TCSVT. For the convenience of the review process, more details and codes are provided. 
+✨**2025-10-15**✨ : An extended version of our conference paper, "Cross-modal State Space Modeling and Terrain-specific Knowledge Distillation for RGB-Thermal Semantic Segmentation", has been submitted to TASE. For the convenience of the review process, more details and codes are provided. 
 
 ## Method 
 ![picture1](./fig/fig2.png)
@@ -25,5 +25,3 @@ mmcv==2.2.0
 | CM-SSM|EfficeintVit-B1   | [PST900](https://github.com/ShreyasSkandanS/pst900_thermal_rgb)     | 85.9    | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.1/PST900.pth)     |
 | CM-SSM|ConvNeXtV2-A    | [SUS](https://github.com/xiaodonguo/SUS_dataset)      | 82.5   | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.1/SUS.pth)     |
 | CM-SSM|ConvNeXtV2-A   | [FMB](https://github.com/JinyuanLiu-CV/SegMiF)     | 60.7    | [pth](https://github.com/xiaodonguo/CMSSM/releases/download/v1.0.1/FMB.pth)     |
-# Concat
-If any questions, please contact 3120245534@bit.edu.cn.
