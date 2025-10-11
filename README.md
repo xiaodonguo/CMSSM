@@ -2,7 +2,7 @@
 ## Introduction
 This repository contains the code for the paper "Cross-modal State Space Modeling for Real-time RGB-Thermal Wild Scene Semantic Segmentation," which has been accepted by IROS 2025.
 
-✨**2025-10-15**✨ : An extended version of our conference paper, "Cross-modal State Space Modeling and Terrain-specific Knowledge Distillation for RGB-Thermal Semantic Segmentation", has been submitted to TASE. For the convenience of the review process, more details and codes are provided. 
+✨**2025-10-9**✨ : An extended version of our conference paper, "Cross-modal State Space Modeling and Terrain-specific Knowledge Distillation for RGB-Thermal Semantic Segmentation", has been submitted to TASE. For the convenience of the review process, more details and codes are provided. 
 
 ## Method 
 ![picture1](./fig/fig2.png)
