@@ -15,9 +15,8 @@ The CM-SS2D consists of three steps: 1) cross-modal selective scanning, 2) cross
 Python==3.9  
 Pytorch==2.0.1  
 Cuda==11.8  
-mamba-ssm==1.0.1
-causal-conv1d==1.0.0
-selective-scan==0.0.1  
+mamba-ssm==1.0.1  
+causal-conv1d==1.0.0  
 mmcv==2.2.0  
 
 | Models |Backbone| Dataset  | mIoU | Weights|
