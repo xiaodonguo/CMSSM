@@ -442,9 +442,22 @@ class SS2D_rgbt(nn.Module):
         ).view(B, K, -1, 2*L)
         assert out_y.dtype == torch.float
 
+        D = out_y.shape[2]
         inv_y = torch.flip(out_y[:, 2:4], dims=[-1]).view(B, 2, -1, 2*L)
-        wh_y = torch.transpose(out_y[:, 1].view(B, -1, W, H), dim0=2, dim1=3).contiguous().view(B, -1, 2*L)
-        invwh_y = torch.transpose(inv_y[:, 1].view(B, -1, W, H), dim0=2, dim1=3).contiguous().view(B, -1, 2*L)
+        wh_y = (
+            out_y[:, 1]
+            .reshape(B, D, W, H, 2)
+            .permute(0, 1, 3, 2, 4)
+            .contiguous()
+            .reshape(B, D, 2 * L)
+        )
+        invwh_y = (
+            inv_y[:, 1]
+            .reshape(B, D, W, H, 2)
+            .permute(0, 1, 3, 2, 4)
+            .contiguous()
+            .reshape(B, D, 2 * L)
+        )
 
         return out_y[:, 0], inv_y[:, 0], wh_y, invwh_y
 
@@ -458,19 +471,19 @@ class SS2D_rgbt(nn.Module):
         t = self.in_proj2(t)
         t1, t2 = t.chunk(2, dim=-1)
         t1 = t1.permute(0, 3, 1, 2).contiguous()
-        t1 = self.act(self.conv2d1(t1))
+        t1 = self.act(self.conv2d2(t1))
 
         y1, y2, y3, y4 = self.forward_core(rgb1, t1)
         assert y1.dtype == torch.float32
         y = y1 + y2 + y3 + y4
 
-        rgb1 = y[:, 0::2, :].permute(0, 1, 2).contiguous().view(B, H, W, -1)
+        rgb1 = y[:, :, 0::2].transpose(1, 2).contiguous().reshape(B, H, W, self.d_inner)
         rgb_ = self.norm1(rgb1) * F.silu(rgb2)
-        rgb_out = self.out_proj1(rgb_).permute(0, 3, 1, 2)
+        rgb_out = self.out_proj1(rgb_).permute(0, 3, 1, 2).contiguous()
 
-        t1 = y[:, 1::2, :].permute(0, 1, 2).contiguous().view(B, H, W, -1)
+        t1 = y[:, :, 1::2].transpose(1, 2).contiguous().reshape(B, H, W, self.d_inner)
         t_ = self.norm2(t1) * F.silu(t2)
-        t_out = self.out_proj2(t_).permute(0, 3, 1, 2)
+        t_out = self.out_proj2(t_).permute(0, 3, 1, 2).contiguous()
 
         return rgb_out, t_out
 
